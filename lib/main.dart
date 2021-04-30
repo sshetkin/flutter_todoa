@@ -1,4 +1,8 @@
+import 'dart:convert';
+
+import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(MyApp());
@@ -25,6 +29,24 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  double temperature = 0;
+
+  Future<double> getData() async {
+    var queryParams = {
+      'q': 'London',
+      'units': 'metric',
+      'appid': '7334ab1bd042a260dbc699d2b8e8a42d'
+    };
+    http.Response respons = await http.get(
+        Uri.https('api.openweathermap.org', 'data/2.5/weather', queryParams));
+
+    var jsonData = jsonDecode(respons.body);
+    double temp = jsonData['main']['temp'];
+    setState(() {
+      temperature = temp;
+    });
+  }
+
   List<TileItem> itemss = [];
 
   @override
@@ -62,7 +84,6 @@ class _MyHomePageState extends State<MyHomePage> {
           builder: (context) => SecondScreen(),
         ));
 
-    // after the SecondScreen result comes back update the Text widget with it
     setState(() {
       if (result != '') {
         itemss.add(TileItem(
@@ -85,6 +106,30 @@ class _MyHomePageState extends State<MyHomePage> {
               fit: BoxFit.fill,
               image: AssetImage('assets/BackUp.jpg'),
             ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 10, top: 40),
+            child: DefaultTextStyle(
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 50.0,
+                fontWeight: FontWeight.bold,
+              ),
+              child: AnimatedTextKit(
+                animatedTexts: [
+                  TyperAnimatedText('TODOa'),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          right: 0,
+          bottom: 20,
+          child: Align(
+            alignment: Alignment.bottomRight,
+            child: Text('temperature London - $temperature',
+                style: TextStyle(color: Colors.red, fontSize: 20)),
           ),
         ),
         Positioned(
@@ -114,6 +159,12 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  @override
+  Future<void> initState() {
+    itemss = items(2);
+    getData();
+  }
+
   List<TileItem> items(int countItem) {
     List<TileItem> itemss = [];
     for (int i = 0; i < countItem; i++) {
@@ -141,8 +192,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class TileItem extends StatelessWidget {
-  final bool isChecked;
+class TileItem extends StatefulWidget {
+  bool isChecked;
   final String image;
   final String title;
 
@@ -151,17 +202,25 @@ class TileItem extends StatelessWidget {
     this.title,
     this.image,
   });
+  @override
+  _TileItemState createState() => _TileItemState();
+}
 
+class _TileItemState extends State<TileItem> {
   @override
   Widget build(BuildContext context) {
-    bool isImageExists = !(image == null || image.isEmpty);
+    bool isImageExists = !(widget.image == null || widget.image.isEmpty);
     return Container(
       padding: EdgeInsets.symmetric(vertical: 0.0, horizontal: 12.0),
       child: Row(
         children: [
           Checkbox(
-            value: isChecked,
-            onChanged: (bool value) {},
+            value: widget.isChecked,
+            onChanged: (bool value) {
+              setState(() {
+                widget.isChecked = value;
+              });
+            },
           ),
           Container(
             margin: EdgeInsets.all(12.0),
@@ -171,7 +230,7 @@ class TileItem extends StatelessWidget {
                 ? BoxDecoration(
                     color: const Color(0xff7c94b6),
                     image: DecorationImage(
-                      image: AssetImage(image),
+                      image: AssetImage(widget.image),
                       fit: BoxFit.cover,
                     ),
                     borderRadius: BorderRadius.all(Radius.circular(50.0)),
@@ -191,7 +250,7 @@ class TileItem extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              title,
+              widget.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 24),
